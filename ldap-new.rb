@@ -7,11 +7,67 @@
 
 #{ }"ldaps://mars.wh.f4.htw-berlin.de/DC=WH,DC=f4,DC=HTW-BERLIN,DC=DE?cn?sub"
 
-
+#AuthName "Anmeldung notwendig"
+#               AuthType Basic
+#               AuthBasicProvider ldap
+#               AuthLDAPURL
+#"ldaps://mars.wh.f4.htw-berlin.de/DC=WH,DC=f4,DC=HTW-BERLIN,DC=DE?cn?sub"
+#               AuthLDAPGroupAttribute member
+#               AuthLDAPGroupAttributeIsDN on
+#               Require ldap-group
+#CN=li,CN=Users,DC=wh,DC=f4,DC=htw-berlin,DC=de
+#		AuthLDAPBindDN CN=ldap,CN=Users,DC=wh,DC=f4,DC=htw-berlin,DC=de
+#		AuthLDAPBindPassword "PASSWORDPASSWORD"
+#
 require 'rubygems'
 require 'net/ldap'
 
 puts 'export PW=<your passwd> to test' unless password = ENV['PW']
+
+
+
+def ldap(password)
+  ldap = Net::LDAP.new(
+    host: 'mars.wh.f4.htw-berlin.de',
+    port: 636,
+       encryption: {method: :simple_tls},
+       :auth => {
+             :method => :simple,
+               tls_options: OpenSSL::SSL::SSLContext::DEFAULT_PARAMS,
+               #username: 'vm',
+               username: 'CN=vm,CN=Users,DC=wh,DC=f4,DC=htw-berlin,DC=de',
+
+              # AuthLDAPBindDN CN=vm,CN=Users,DC=wh,DC=f4,DC=htw-berlin,DC=de
+            # :username => "uid=vm,CN=ldap,CN=Users,DC=wh,DC=f4,DC=htw-berlin,DC=de",
+             :password => password
+       })
+end
+
+
+def ldap2(password)
+  ldap = Net::LDAP.new(
+    encryption: {method: :simple_tls},
+    host: 'mars.wh.f4.htw-berlin.de',
+    port: 636,
+       :auth => {
+             :method => :simple,
+               username: 'CN=vm,CN=Users,DC=wh,DC=f4,DC=htw-berlin,DC=de',
+               password: password
+       })
+end
+
+def ldap3(password)
+  ldap = Net::LDAP.new(
+    encryption: {method: :simple_tls},
+    host: 'mars.wh.f4.htw-berlin.de',
+    port: 636,
+       :auth => {
+             :method => :simple,
+               username: 'CN=kleinen,CN=Users,DC=wh,DC=f4,DC=htw-berlin,DC=de',
+               password: password
+       })
+end
+
 
 def authorize(password)
   ldap = Net::LDAP.new
@@ -44,19 +100,10 @@ def authorize(password)
 end
 
 def directory_search(password)
-  ldap = Net::LDAP.new :host => 'mars.wh.f4.htw-berlin.de',
-       :port => 636,
-       encryption: {method: :simple_tls},
-       :auth => {
-             :method => :simple,
-               tls_options: OpenSSL::SSL::SSLContext::DEFAULT_PARAMS,
-             :username => "uid=vm,CN=ldap,CN=Users,DC=wh,DC=f4,DC=htw-berlin,DC=de",
-             :password => password
-       }
-  #ldap.encryption(encryption: :simple_tls )
+  ldap = ldap2(password)
   filter = Net::LDAP::Filter.eq( "cn", "Kleinen*" )
   treebase = "dc=htw-berlin,dc=de"
-
+puts "trying to search"
   ldap.search( :base => treebase, :filter => filter ) do |entry|
     puts "DN: #{entry.dn}"
     entry.each do |attribute, values|
